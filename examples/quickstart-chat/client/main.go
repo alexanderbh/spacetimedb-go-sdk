@@ -16,7 +16,7 @@ func main() {
 	}
 	defer db.Close()
 
-	fmt.Println("Press Enter to exit...")
+	fmt.Print("Press Enter to exit...\n\n")
 	var input string
 	fmt.Scanln(&input)
 }

@@ -3,20 +3,18 @@ package spacetimedb
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
 )
 
-// Identity represents the __identity__ field
 type Identity struct {
 	Identity string `json:"__identity__"`
 }
 
-// MessageConnectionID represents the __connection_id__ field in the message
 type MessageConnectionID struct {
 	ConnectionID *big.Int `json:"__connection_id__"`
 }
 
-// IdentityToken represents the top-level JSON structure
 type IdentityToken struct {
 	Identity     Identity            `json:"identity"`
 	Token        string              `json:"token"`
@@ -39,11 +37,11 @@ func (db *DBConnection) handleMessage(msg []byte) error {
 				return fmt.Errorf("error unmarshalling IdentityToken: %w", err)
 			}
 			// TODO: Process the unmarshalled IdentityToken
-			fmt.Printf("Received IdentityToken: %+v\\n", identityToken)
+			log.Printf("Received IdentityToken: %+v\n\n", identityToken)
 		default:
 			return fmt.Errorf("unknown message type: %s", key)
 		}
-		// Assuming one top-level key per message as per examples
+		// Assuming one top-level key per message. Still not sure about this.
 		break
 	}
 

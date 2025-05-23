@@ -7,8 +7,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// CallReducerMessage mirrors the structure needed for a CallReducer operation.
-// Based on ts-sdk-reference/src/client_api/call_reducer_type.ts
 type CallReducerMessage struct {
 	Reducer   string
 	Args      []byte
@@ -44,12 +42,11 @@ func (db *DBConnection) Connect() error {
 	db.isAlive = true
 	fmt.Printf("Connected to websocket at %s\n", db.host)
 
-	// Handle messages in a separate goroutine
 	go func() {
 		defer func() {
 			db.isAlive = false
 			if db.conn != nil {
-				db.conn.Close() // Ensure connection is closed if read loop exits
+				db.conn.Close()
 			}
 		}()
 		for {
@@ -59,22 +56,22 @@ func (db *DBConnection) Connect() error {
 			}
 			messageType, rawMessage, err := db.conn.ReadMessage()
 			if err != nil {
-				log.Printf("Error reading message: %v\n", err)
+				log.Printf("Error reading message: %v\n\n", err)
 				return
 			}
 			if messageType == websocket.TextMessage {
-				log.Printf("Received text message: %s\n", rawMessage)
+				log.Printf("Received text message: %s\n\n", rawMessage)
 				db.handleMessage(rawMessage)
 			}
 			if messageType == websocket.BinaryMessage {
-				log.Printf("Received binary message: %x\n", rawMessage)
+				log.Printf("Received binary message: %x\n\n", rawMessage)
 			}
 			if messageType == websocket.CloseMessage {
 				log.Println("Received close message, closing connection")
 				return
 			}
 			if messageType == websocket.PongMessage {
-				log.Println("Received pong message")
+				log.Print("Received pong message\n\n")
 			}
 		}
 	}()
@@ -92,7 +89,6 @@ func (db *DBConnection) Close() {
 	}
 }
 
-// sendMessage sends a message over the websocket connection.
 func (db *DBConnection) sendMessage(messageType int, data []byte) error {
 	if db.conn == nil {
 		return fmt.Errorf("cannot send message: not connected")
