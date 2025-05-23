@@ -64,6 +64,7 @@ func (db *DBConnection) Connect() error {
 			}
 			if messageType == websocket.TextMessage {
 				log.Printf("Received text message: %s\n", rawMessage)
+				db.handleMessage(rawMessage)
 			}
 			if messageType == websocket.BinaryMessage {
 				log.Printf("Received binary message: %x\n", rawMessage)
