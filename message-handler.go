@@ -7,21 +7,21 @@ import (
 	"math/big"
 )
 
-type Identity struct {
+type JSONIdentity struct {
 	Identity string `json:"__identity__"`
 }
 
-type MessageConnectionID struct {
+type JSONMessageConnectionID struct {
 	ConnectionID *big.Int `json:"__connection_id__"`
 }
 
-type IdentityToken struct {
-	Identity     Identity            `json:"identity"`
-	Token        string              `json:"token"`
-	ConnectionID MessageConnectionID `json:"connection_id"`
+type JSONIdentityToken struct {
+	Identity     JSONIdentity            `json:"identity"`
+	Token        string                  `json:"token"`
+	ConnectionID JSONMessageConnectionID `json:"connection_id"`
 }
 
-func (db *DBConnection) handleMessage(msg []byte) error {
+func (db *DBConnection) parseJsonMessage(msg []byte) error {
 	var rawMessages map[string]json.RawMessage
 	err := json.Unmarshal(msg, &rawMessages)
 	if err != nil {
@@ -31,7 +31,7 @@ func (db *DBConnection) handleMessage(msg []byte) error {
 	for key, rawMessage := range rawMessages {
 		switch key {
 		case "IdentityToken":
-			var identityToken IdentityToken
+			var identityToken JSONIdentityToken
 			err := json.Unmarshal(rawMessage, &identityToken)
 			if err != nil {
 				return fmt.Errorf("error unmarshalling IdentityToken: %w", err)

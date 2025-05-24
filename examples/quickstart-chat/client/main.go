@@ -8,7 +8,7 @@ import (
 
 func main() {
 
-	db := spacetimedb.NewDBConnection("wss://maincloud.spacetimedb.com/v1/database/go-sdk-test/subscribe")
+	db := spacetimedb.NewDBConnection("wss://maincloud.spacetimedb.com/v1/database/go-sdk-test/subscribe?compression=None")
 	err := db.Connect()
 	if err != nil {
 		fmt.Println("Error connecting to database:", err)

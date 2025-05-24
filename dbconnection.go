@@ -32,7 +32,8 @@ func (db *DBConnection) Connect() error {
 	}
 
 	dialer := websocket.DefaultDialer
-	dialer.Subprotocols = []string{"v1.json.spacetimedb"}
+	//dialer.Subprotocols = []string{"v1.json.spacetimedb"}
+	dialer.Subprotocols = []string{"v1.bsatn.spacetimedb"}
 	c, _, err := dialer.Dial(db.host, nil)
 
 	if err != nil {
@@ -61,7 +62,7 @@ func (db *DBConnection) Connect() error {
 			}
 			if messageType == websocket.TextMessage {
 				log.Printf("Received text message: %s\n\n", rawMessage)
-				db.handleMessage(rawMessage)
+				db.parseJsonMessage(rawMessage)
 			}
 			if messageType == websocket.BinaryMessage {
 				log.Printf("Received binary message: %x\n\n", rawMessage)

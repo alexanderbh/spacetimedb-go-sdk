@@ -6,27 +6,27 @@ import (
 	"math/big"
 )
 
-// ConnectionID is a unique identifier for a client connected to a database.
-type ConnectionID struct {
+// ConnectionId is a unique identifier for a client connected to a database.
+type ConnectionId struct {
 	data *big.Int
 }
 
-// NewConnectionID creates a new ConnectionID with the given big.Int data.
+// NewConnectionId creates a new ConnectionID with the given big.Int data.
 // The provided data is used directly.
-func NewConnectionID(data *big.Int) *ConnectionID {
+func NewConnectionId(data *big.Int) *ConnectionId {
 	if data == nil {
 		// Ensure data is not nil, similar to how bigint in TS is non-nullable.
 		// Or, document that data must not be nil.
 		// For now, let's initialize to 0 if nil is passed, though this might hide issues.
 		// A better approach might be to panic or return an error if data is nil.
 		// However, internal calls like RandomConnectionID ensure data is non-nil.
-		return &ConnectionID{data: big.NewInt(0)}
+		return &ConnectionId{data: big.NewInt(0)}
 	}
-	return &ConnectionID{data: data}
+	return &ConnectionId{data: data}
 }
 
 // IsZero checks if the ConnectionID is zero.
-func (cid *ConnectionID) IsZero() bool {
+func (cid *ConnectionId) IsZero() bool {
 	if cid == nil || cid.data == nil {
 		return true // Consider a nil ConnectionID or nil data as effectively zero or an invalid state.
 	}
@@ -34,7 +34,7 @@ func (cid *ConnectionID) IsZero() bool {
 }
 
 // NullIfZero returns nil if the ConnectionID is zero, otherwise returns the ConnectionID.
-func NullIfZero(addr *ConnectionID) *ConnectionID {
+func NullIfZero(addr *ConnectionId) *ConnectionId {
 	if addr == nil || addr.IsZero() {
 		return nil
 	}
@@ -51,10 +51,10 @@ func randomPseudoByte() (uint8, error) {
 	return uint8(n.Uint64()), nil // n.Uint64() is safe as n is small.
 }
 
-// RandomConnectionID creates a new random ConnectionID.
+// RandomConnectionId creates a new random ConnectionID.
 // It replicates the TypeScript logic of building a 128-bit number
 // from 16 "bytes", each in the range [0, 254].
-func RandomConnectionID() (*ConnectionID, error) {
+func RandomConnectionId() (*ConnectionId, error) {
 	pseudoBytes := make([]byte, 16)
 	for i := 0; i < 16; i++ {
 		pb, err := randomPseudoByte()
@@ -65,11 +65,11 @@ func RandomConnectionID() (*ConnectionID, error) {
 	}
 	// new(big.Int).SetBytes interprets pseudoBytes as a big-endian unsigned integer.
 	data := new(big.Int).SetBytes(pseudoBytes)
-	return NewConnectionID(data), nil
+	return NewConnectionId(data), nil
 }
 
 // IsEqual compares two ConnectionIDs for equality.
-func (cid *ConnectionID) IsEqual(other *ConnectionID) bool {
+func (cid *ConnectionId) IsEqual(other *ConnectionId) bool {
 	if cid == other { // Handles both being nil
 		return true
 	}
@@ -81,7 +81,7 @@ func (cid *ConnectionID) IsEqual(other *ConnectionID) bool {
 
 // ToHexString converts the ConnectionID to a hexadecimal string.
 // It relies on U128ToHexString from the utils package.
-func (cid *ConnectionID) ToHexString() (string, error) {
+func (cid *ConnectionId) ToHexString() (string, error) {
 	if cid == nil || cid.data == nil {
 		return "", fmt.Errorf("cannot convert nil ConnectionID or ConnectionID with nil data to hex string")
 	}
@@ -90,7 +90,7 @@ func (cid *ConnectionID) ToHexString() (string, error) {
 
 // ToUint8Array converts the ConnectionID to a byte array.
 // It relies on U128ToUint8Array from the utils package.
-func (cid *ConnectionID) ToUint8Array() ([]byte, error) {
+func (cid *ConnectionId) ToUint8Array() ([]byte, error) {
 	if cid == nil || cid.data == nil {
 		return nil, fmt.Errorf("cannot convert nil ConnectionID or ConnectionID with nil data to byte array")
 	}
@@ -99,7 +99,7 @@ func (cid *ConnectionID) ToUint8Array() ([]byte, error) {
 
 // ConnectionIDFromString parses a ConnectionID from a hexadecimal string.
 // It relies on HexStringToU128 from the utils package.
-func ConnectionIDFromString(str string) (*ConnectionID, error) {
+func ConnectionIDFromString(str string) (*ConnectionId, error) {
 	data, err := HexStringToU128(str)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ConnectionID from string: %w", err)
@@ -108,12 +108,12 @@ func ConnectionIDFromString(str string) (*ConnectionID, error) {
 		// HexStringToU128 should ideally not return (nil, nil)
 		return nil, fmt.Errorf("HexStringToU128 returned nil data without error for string: %s", str)
 	}
-	return NewConnectionID(data), nil
+	return NewConnectionId(data), nil
 }
 
 // ConnectionIDFromStringOrNull parses a ConnectionID from a hexadecimal string,
 // returning (nil, nil) if the parsed ID is zero.
-func ConnectionIDFromStringOrNull(str string) (*ConnectionID, error) {
+func ConnectionIDFromStringOrNull(str string) (*ConnectionId, error) {
 	cid, err := ConnectionIDFromString(str)
 	if err != nil {
 		return nil, err // Error during parsing
@@ -128,7 +128,7 @@ func ConnectionIDFromStringOrNull(str string) (*ConnectionID, error) {
 // GetData returns the internal *big.Int data.
 // This is provided if direct access to the *big.Int is needed,
 // similar to accessing the `data` property in the TypeScript version.
-func (cid *ConnectionID) GetData() *big.Int {
+func (cid *ConnectionId) GetData() *big.Int {
 	if cid == nil {
 		return nil
 	}
