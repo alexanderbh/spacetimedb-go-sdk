@@ -4,12 +4,19 @@
 
 The server module is deployed to maincloud already.
 
-Go to the client folder
+Go to the client folder:
+
 `cd examples/quickstart-chat/client`
 
 Run the client example:
 
 `go run .`
+
+## How to run the tests
+
+Run the tests by running the following in the root folder:
+
+`go test ./test`
 
 ### References
 
