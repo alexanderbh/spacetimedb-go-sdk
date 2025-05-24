@@ -1,8 +1,8 @@
-import { DbConnectionImpl, type ConnectionEvent } from './db_connection_impl';
-import { EventEmitter } from './event_emitter';
-import type { Identity } from './identity';
-import type RemoteModule from './spacetime_module';
-import { WebsocketDecompressAdapter } from './websocket_decompress_adapter';
+import { DbConnectionImpl, type ConnectionEvent } from "./db_connection_impl";
+import { EventEmitter } from "./event_emitter";
+import type { Identity } from "./identity";
+import type RemoteModule from "./spacetime_module";
+import { WebsocketDecompressAdapter } from "./websocket_decompress_adapter";
 
 /**
  * The database client connection to a SpacetimeDB server.
@@ -10,14 +10,14 @@ import { WebsocketDecompressAdapter } from './websocket_decompress_adapter';
 export class DbConnectionBuilder<
   DbConnection,
   ErrorContext,
-  SubscriptionEventContext,
+  SubscriptionEventContext
 > {
   #uri?: URL;
   #nameOrAddress?: string;
   #identity?: Identity;
   #token?: string;
   #emitter: EventEmitter<ConnectionEvent> = new EventEmitter();
-  #compression: 'gzip' | 'none' = 'gzip';
+  #compression: "gzip" | "none" = "gzip";
   #lightMode: boolean = false;
   #createWSFn: typeof WebsocketDecompressAdapter.createWebSocketFn;
 
@@ -89,7 +89,7 @@ export class DbConnectionBuilder<
    *
    * @param compression The compression algorithm to use for the connection.
    */
-  withCompression(compression: 'gzip' | 'none'): this {
+  withCompression(compression: "gzip" | "none"): this {
     this.#compression = compression;
     return this;
   }
@@ -137,7 +137,7 @@ export class DbConnectionBuilder<
       token: string
     ) => void
   ): this {
-    this.#emitter.on('connect', callback);
+    this.#emitter.on("connect", callback);
     return this;
   }
 
@@ -153,7 +153,7 @@ export class DbConnectionBuilder<
    * ```
    */
   onConnectError(callback: (ctx: ErrorContext, error: Error) => void): this {
-    this.#emitter.on('connectError', callback);
+    this.#emitter.on("connectError", callback);
     return this;
   }
 
@@ -186,7 +186,7 @@ export class DbConnectionBuilder<
   onDisconnect(
     callback: (ctx: ErrorContext, error?: Error | undefined) => void
   ): this {
-    this.#emitter.on('disconnect', callback);
+    this.#emitter.on("disconnect", callback);
     return this;
   }
 
@@ -206,12 +206,12 @@ export class DbConnectionBuilder<
    */
   build(): DbConnection {
     if (!this.#uri) {
-      throw new Error('URI is required to connect to SpacetimeDB');
+      throw new Error("URI is required to connect to SpacetimeDB");
     }
 
     if (!this.#nameOrAddress) {
       throw new Error(
-        'Database name or address is required to connect to SpacetimeDB'
+        "Database name or address is required to connect to SpacetimeDB"
       );
     }
 

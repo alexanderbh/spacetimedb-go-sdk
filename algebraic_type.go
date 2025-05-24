@@ -63,8 +63,8 @@ const (
 	// StructKind represents a product type (record/struct).
 	StructKind
 	// OptionKind is handled as a special SumKind with "some" and "none" variants.
-	// VectorKind represents a list/array of elements of the same type.
-	VectorKind
+	// ArrayKind represents an array of elements of the same type, with special handling for byte arrays.
+	ArrayKind
 	// MapKind represents a map/dictionary.
 	MapKind
 	// TupleKind represents an ordered, fixed-size collection of elements of potentially different types.
@@ -86,7 +86,7 @@ type AlgebraicType struct {
 	OptionDetails struct { // Only if OptionKind is made distinct and not just a SumType pattern
 		SomeType *AlgebraicType
 	}
-	VectorDetails struct {
+	ArrayDetails struct {
 		ElementType *AlgebraicType
 	}
 	MapDetails struct {
@@ -214,16 +214,20 @@ func CreateStructType(name string, fields []StructField) *AlgebraicType {
 	}
 }
 
-// CreateVectorType creates an AlgebraicType for a vector (slice) type.
-func CreateVectorType(name string, elementType *AlgebraicType) *AlgebraicType {
-	vecName := name
-	if vecName == "" {
-		vecName = fmt.Sprintf("Vector<%s>", elementType.Name)
+// CreateArrayType creates an AlgebraicType for an array type.
+func CreateArrayType(name string, elementType *AlgebraicType) *AlgebraicType {
+	arrName := name
+	if arrName == "" {
+		if elementType != nil && elementType.Name != "" {
+			arrName = fmt.Sprintf("Array<%s>", elementType.Name)
+		} else {
+			arrName = "Array_UnknownElement"
+		}
 	}
 	return &AlgebraicType{
-		Name:          vecName,
-		Kind:          VectorKind,
-		VectorDetails: struct{ ElementType *AlgebraicType }{ElementType: elementType},
+		Name:         arrName,
+		Kind:         ArrayKind,
+		ArrayDetails: struct{ ElementType *AlgebraicType }{ElementType: elementType},
 	}
 }
 
@@ -450,20 +454,44 @@ func (at *AlgebraicType) Serialize(writer *BinaryWriter, value interface{}) erro
 			}
 			break
 		}
-	case VectorKind:
+	case ArrayKind:
 		valSlice := reflect.ValueOf(value)
 		if valSlice.Kind() != reflect.Slice {
-			return fmt.Errorf("%s: expected slice for VectorKind, got %T", at.Name, value)
+			return fmt.Errorf("%s: expected slice for ArrayKind, got %T", at.Name, value)
 		}
-		length := valSlice.Len()
-		writer.WriteU32(uint32(length))
-		if at.VectorDetails.ElementType == nil {
-			return fmt.Errorf("%s: vector element type is nil", at.Name)
+
+		if at.ArrayDetails.ElementType == nil {
+			return fmt.Errorf("%s: array element type is nil for ArrayKind", at.Name)
 		}
-		for i := 0; i < length; i++ {
-			elem := valSlice.Index(i).Interface()
-			if err := at.VectorDetails.ElementType.Serialize(writer, elem); err != nil {
-				return fmt.Errorf("%s: failed to serialize vector element %d: %w", at.Name, i, err)
+
+		if at.ArrayDetails.ElementType.Kind == U8Kind {
+			byteSlice, ok := value.([]byte)
+			if !ok {
+				if valSlice.Type().Elem().Kind() == reflect.Uint8 {
+					tempSlice := make([]byte, valSlice.Len())
+					for i := 0; i < valSlice.Len(); i++ {
+						uintVal := valSlice.Index(i).Uint()
+						if uintVal > 255 {
+							return fmt.Errorf("%s: element at index %d (%v) out of byte range for ArrayKind<U8>", at.Name, i, uintVal)
+						}
+						tempSlice[i] = byte(uintVal)
+					}
+					byteSlice = tempSlice
+					ok = true
+				}
+				if !ok {
+					return fmt.Errorf("%s: expected []byte or slice of uint8 for ArrayKind<U8>, got %T", at.Name, value)
+				}
+			}
+			writer.WriteUInt8Array(byteSlice)
+		} else {
+			length := valSlice.Len()
+			writer.WriteU32(uint32(length))
+			for i := 0; i < length; i++ {
+				elem := valSlice.Index(i).Interface()
+				if err := at.ArrayDetails.ElementType.Serialize(writer, elem); err != nil {
+					return fmt.Errorf("%s: failed to serialize array element %d: %w", at.Name, i, err)
+				}
 			}
 		}
 	case StructKind:
@@ -626,21 +654,54 @@ func (at *AlgebraicType) Deserialize(reader *BinaryReader) (interface{}, error) 
 			return nil, fmt.Errorf("%s: failed to deserialize payload for variant '%s': %w", at.Name, variant.Name, err)
 		}
 		return map[string]interface{}{variant.Name: payload}, nil
+	case ArrayKind:
+		if at.ArrayDetails.ElementType == nil {
+			return nil, fmt.Errorf("%s: array element type is nil for ArrayKind", at.Name)
+		}
 
-	case VectorKind:
-		length := reader.ReadU32()
-		slice := make([]interface{}, length)
-		if at.VectorDetails.ElementType == nil {
-			return nil, fmt.Errorf("%s: vector element type is nil", at.Name)
-		}
-		for i := 0; i < int(length); i++ {
-			elem, err := at.VectorDetails.ElementType.Deserialize(reader)
-			if err != nil {
-				return nil, fmt.Errorf("%s: failed to deserialize vector element %d: %w", at.Name, i, err)
+		if at.ArrayDetails.ElementType.Kind == U8Kind {
+			// Assuming ReadUInt8Array reads length and then bytes, and returns []byte or error
+			// If ReadUInt8Array doesn't return an error, and error handling is different, adjust this.
+			bytes := reader.ReadUInt8Array() // If this can fail, it should return an error
+			// if reader has an error state: if reader.Error() != nil { return nil, reader.Error() }
+			return bytes, nil // Assuming `bytes` is the correct return type e.g. []byte
+		} else {
+			length := reader.ReadU32() // If this can fail, it should return an error
+			// if reader has an error state: if reader.Error() != nil { return nil, reader.Error() }
+
+			elemType := at.ArrayDetails.ElementType.GoType()
+			var slice reflect.Value
+			if elemType != nil {
+				slice = reflect.MakeSlice(reflect.SliceOf(elemType), int(length), int(length))
+			} else {
+				objSlice := make([]interface{}, length)
+				for i := uint32(0); i < length; i++ {
+					elem, errDeserialize := at.ArrayDetails.ElementType.Deserialize(reader)
+					if errDeserialize != nil {
+						return nil, fmt.Errorf("%s: failed to deserialize array element %d: %w", at.Name, i, errDeserialize)
+					}
+					objSlice[i] = elem
+				}
+				return objSlice, nil
 			}
-			slice[i] = elem
+
+			for i := uint32(0); i < length; i++ {
+				elem, errDeserialize := at.ArrayDetails.ElementType.Deserialize(reader)
+				if errDeserialize != nil {
+					return nil, fmt.Errorf("%s: failed to deserialize array element %d: %w", at.Name, i, errDeserialize)
+				}
+				if reflect.TypeOf(elem).AssignableTo(elemType) {
+					slice.Index(int(i)).Set(reflect.ValueOf(elem))
+				} else if elemType.Kind() == reflect.Interface && reflect.TypeOf(elem).Implements(elemType) {
+					slice.Index(int(i)).Set(reflect.ValueOf(elem))
+				} else if reflect.ValueOf(elem).Type().ConvertibleTo(elemType) {
+					slice.Index(int(i)).Set(reflect.ValueOf(elem).Convert(elemType))
+				} else {
+					return nil, fmt.Errorf("%s: deserialized element type %T not assignable or convertible to slice element type %v", at.Name, elem, elemType)
+				}
+			}
+			return slice.Interface(), nil
 		}
-		return slice, nil
 	case StructKind:
 		resultMap := make(map[string]interface{})
 		for _, field := range at.StructDetails.Fields {
@@ -703,4 +764,53 @@ func (at *AlgebraicType) Deserialize(reader *BinaryReader) (interface{}, error) 
 // This was mentioned in the TS SumType.serialize fallback logic.
 func (at *AlgebraicType) isUnit() bool {
 	return at.Kind == UnitKind
+}
+
+// GoType returns the Go reflect.Type corresponding to the AlgebraicType.
+// This is a simplified version for use in Deserialize.
+func (at *AlgebraicType) GoType() reflect.Type {
+	switch at.Kind {
+	case UnitKind:
+		return reflect.TypeOf(nil) // Or a specific struct{}{} type
+	case BoolKind:
+		return reflect.TypeOf(false)
+	case U8Kind:
+		return reflect.TypeOf(uint8(0))
+	case I8Kind:
+		return reflect.TypeOf(int8(0))
+	case U16Kind:
+		return reflect.TypeOf(uint16(0))
+	case I16Kind:
+		return reflect.TypeOf(int16(0))
+	case U32Kind:
+		return reflect.TypeOf(uint32(0))
+	case I32Kind:
+		return reflect.TypeOf(int32(0))
+	case U64Kind:
+		return reflect.TypeOf(uint64(0))
+	case I64Kind:
+		return reflect.TypeOf(int64(0))
+	case F32Kind:
+		return reflect.TypeOf(float32(0))
+	case F64Kind:
+		return reflect.TypeOf(float64(0))
+	case StringKind:
+		return reflect.TypeOf("")
+	case BytesKind: // This kind might be redundant if ArrayKind<U8> handles it
+		return reflect.TypeOf([]byte{})
+	case U128Kind, I128Kind, U256Kind, I256Kind:
+		return reflect.TypeOf((*big.Int)(nil))
+	case TimestampKind:
+		return reflect.TypeOf((*Timestamp)(nil))
+	case TimeDurationKind:
+		return reflect.TypeOf((*TimeDuration)(nil))
+	case ConnectionIdKind:
+		return reflect.TypeOf((*ConnectionId)(nil))
+	case IdentityKind:
+		return reflect.TypeOf((*Identity)(nil))
+	// For ArrayKind, this method would be called on at.ArrayDetails.ElementType
+	// So, the cases above for primitive types are what ArrayDetails.ElementType.GoType() would return.
+	default:
+		return nil
+	}
 }

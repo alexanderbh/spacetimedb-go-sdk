@@ -21,7 +21,7 @@ func IdentityToken_GetAlgebraicType() *AlgebraicType {
 	return at
 }
 
-func NewIdentityTokenFromMap(m map[string]interface{}) (*IdentityTokenType, error) {
+func NewIdentityTokenFromMap(m map[string]any) (*IdentityTokenType, error) {
 	identity, ok := m["identity"].(*Identity)
 	if !ok {
 		return nil, fmt.Errorf("failed to cast identity to *Identity: %T", m["identity"])

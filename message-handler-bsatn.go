@@ -4,17 +4,11 @@ import (
 	"fmt"
 )
 
-const (
-	CompressionTypeNone   uint8 = 0
-	CompressionTypeBrotly uint8 = 1
-	CompressionTypeGzip   uint8 = 2
-)
-
 func (db *DBConnection) parseBsantMessage(msg []byte) error {
 	reader := NewBinaryReader(msg)
 
+	// Handle compression
 	compression := reader.ReadU8()
-
 	switch compression {
 	case CompressionTypeNone:
 		// No compression, read the message directly
@@ -36,7 +30,7 @@ func (db *DBConnection) parseBsantMessage(msg []byte) error {
 	}
 	fmt.Printf("Received message: %s\n\n", deserializedMsg)
 
-	typedMsg := deserializedMsg.(map[string]interface{})
+	typedMsg := deserializedMsg.(map[string]any)
 
 	// Assert assumption that the message contains a single entry is correect
 	if len(typedMsg) != 1 {
@@ -46,7 +40,7 @@ func (db *DBConnection) parseBsantMessage(msg []byte) error {
 	for key := range typedMsg {
 		switch key {
 		case "IdentityToken":
-			identityToken, ok := typedMsg[key].(map[string]interface{})
+			identityToken, ok := typedMsg[key].(map[string]any)
 			if !ok {
 				return fmt.Errorf("failed to cast %s to map[string]interface{}", key)
 			}
@@ -57,12 +51,15 @@ func (db *DBConnection) parseBsantMessage(msg []byte) error {
 			}
 			fmt.Printf("Received IdentityToken: %+v\n\n", idToken)
 
-			db.identity = idToken.Identity
-			if db.token == "" && idToken.Token != "" {
-				db.token = idToken.Token
+			db.IsConnected = true
+			db.Identity = idToken.Identity
+			if db.Token == "" && idToken.Token != "" {
+				db.Token = idToken.Token
 			}
-			db.connectionId = idToken.ConnectionId
-
+			db.ConnectionId = idToken.ConnectionId
+			if db.OnConnect != nil {
+				db.OnConnect(db, idToken.Identity, idToken.Token, idToken.ConnectionId)
+			}
 		}
 	}
 
