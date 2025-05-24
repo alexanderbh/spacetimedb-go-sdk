@@ -18,6 +18,10 @@ type DBConnection struct {
 	host    string
 	isAlive bool
 	conn    *websocket.Conn
+
+	identity     *Identity
+	token        string
+	connectionId *ConnectionId
 }
 
 func NewDBConnection(host string) *DBConnection {
@@ -66,6 +70,10 @@ func (db *DBConnection) Connect() error {
 			}
 			if messageType == websocket.BinaryMessage {
 				log.Printf("Received binary message: %x\n\n", rawMessage)
+				err = db.parseBsantMessage(rawMessage)
+				if err != nil {
+					log.Printf("Error parsing binary message: %v\n\n", err)
+				}
 			}
 			if messageType == websocket.CloseMessage {
 				log.Println("Received close message, closing connection")

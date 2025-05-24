@@ -13,6 +13,7 @@ type BinaryReader struct {
 }
 
 // NewBinaryReader creates a new BinaryReader with the given input byte slice.
+// []byte is a slice so it will not copy the actual data, just the reference to it.
 func NewBinaryReader(input []byte) *BinaryReader {
 	return &BinaryReader{
 		buffer: input,

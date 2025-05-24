@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/alexanderbh/spacetimedb-go-sdk"
-	"github.com/alexanderbh/spacetimedb-go-sdk/client_api/server_message"
 )
 
 func TestParsingIdentityTokenMessage(t *testing.T) {
@@ -22,7 +21,7 @@ func TestParsingIdentityTokenMessage(t *testing.T) {
 	}
 
 	reader := spacetimedb.NewBinaryReader(bytes)
-	got, err := server_message.GetAlgebraicType().Deserialize(reader)
+	got, err := spacetimedb.ServerMessage_GetAlgebraicType().Deserialize(reader)
 	if err != nil {
 		t.Errorf("failed to deserialize: %v", err)
 	}
