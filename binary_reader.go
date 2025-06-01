@@ -238,3 +238,26 @@ func (br *BinaryReader) ReadString() string {
 	br.offset += int(length)
 	return value
 }
+
+func (br *BinaryReader) ReadArray(elementReader func(*BinaryReader) any) []any {
+	length := br.ReadU32()
+	result := make([]any, length)
+	for i := 0; i < int(length); i++ {
+		element := elementReader(br)
+		if element == nil {
+			return nil // If any element is nil, return nil
+		}
+		result[i] = element
+	}
+	return result
+}
+
+func ReadArray[T any](br *BinaryReader, elementReader func() T) []T {
+	length := br.ReadU32()
+	result := make([]T, length)
+	for i := 0; i < int(length); i++ {
+		element := elementReader()
+		result[i] = element
+	}
+	return result
+}

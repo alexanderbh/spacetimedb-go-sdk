@@ -171,3 +171,31 @@ func U256ToHexString(data *big.Int) (string, error) {
 	}
 	return Uint8ArrayToHexString(byteArray), nil
 }
+
+func U32ToHexString(data uint32) string {
+	// Convert uint32 to byte array
+	byteArray := make([]byte, 4)
+	byteArray[0] = byte(data >> 24)
+	byteArray[1] = byte(data >> 16)
+	byteArray[2] = byte(data >> 8)
+	byteArray[3] = byte(data)
+
+	// Convert to hex string
+	return Uint8ArrayToHexString(byteArray)
+}
+
+func U64ToHexString(data uint64) string {
+	// Convert uint64 to byte array
+	byteArray := make([]byte, 8)
+	byteArray[0] = byte(data >> 56)
+	byteArray[1] = byte(data >> 48)
+	byteArray[2] = byte(data >> 40)
+	byteArray[3] = byte(data >> 32)
+	byteArray[4] = byte(data >> 24)
+	byteArray[5] = byte(data >> 16)
+	byteArray[6] = byte(data >> 8)
+	byteArray[7] = byte(data)
+
+	// Convert to hex string
+	return Uint8ArrayToHexString(byteArray)
+}

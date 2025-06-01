@@ -134,3 +134,15 @@ func (cid *ConnectionId) GetData() *big.Int {
 	}
 	return cid.data
 }
+
+// Serialize serializes the ConnectionID to a BinaryWriter.
+func (cid *ConnectionId) Serialize(writer *BinaryWriter) error {
+	panic("ConnectionId.Serialize: not implemented")
+}
+
+// Deserialize deserializes a ConnectionID from a BinaryReader.
+func (cid *ConnectionId) Deserialize(reader *BinaryReader) error {
+	data := reader.ReadU128()
+	cid.data = data
+	return nil
+}

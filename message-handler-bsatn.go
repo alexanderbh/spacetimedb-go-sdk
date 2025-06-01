@@ -21,46 +21,37 @@ func (db *DBConnection) parseBsantMessage(msg []byte) error {
 	}
 
 	// Read the message type
-	deserializedMsg, err := ServerMessage_GetAlgebraicType().Deserialize(reader)
-	if err != nil {
-		return fmt.Errorf("failed to deserialize message: %w", err)
-	}
-	if deserializedMsg == nil {
-		return fmt.Errorf("deserialized message is nil")
-	}
-	fmt.Printf("Received message: %s\n\n", deserializedMsg)
-
-	typedMsg := deserializedMsg.(map[string]any)
-
-	// Assert assumption that the message contains a single entry is correect
-	if len(typedMsg) != 1 {
-		return fmt.Errorf("expected a single entry in the deserialized message, got %d entries", len(typedMsg))
+	serverMsg := &ServerMessage{}
+	if err := serverMsg.Deserialize(reader); err != nil {
+		return fmt.Errorf("failed to deserialize server message: %w", err)
 	}
 
-	for key := range typedMsg {
-		switch key {
-		case "IdentityToken":
-			identityToken, ok := typedMsg[key].(map[string]any)
-			if !ok {
-				return fmt.Errorf("failed to cast %s to map[string]interface{}", key)
-			}
+	fmt.Printf("Received message: %s\n\n", serverMsg)
 
-			idToken, err := NewIdentityTokenFromMap(identityToken)
-			if err != nil {
-				return fmt.Errorf("failed to create IdentityToken from map: %w", err)
-			}
-			fmt.Printf("Received IdentityToken: %+v\n\n", idToken)
+	switch msg := serverMsg.Message.(type) {
+	case *IdentityToken:
 
-			db.IsConnected = true
-			db.Identity = idToken.Identity
-			if db.Token == "" && idToken.Token != "" {
-				db.Token = idToken.Token
-			}
-			db.ConnectionId = idToken.ConnectionId
-			if db.OnConnect != nil {
-				db.OnConnect(db, idToken.Identity, idToken.Token, idToken.ConnectionId)
-			}
+		fmt.Printf("Received IdentityToken: %#v\n\n", serverMsg.Message)
+
+		db.IsConnected = true
+		db.Identity = msg.Identity
+		if db.Token == "" && msg.Token != "" {
+			db.Token = msg.Token
 		}
+		db.ConnectionId = msg.ConnectionId
+		if db.OnConnect != nil {
+			db.OnConnect(db, msg.Identity, msg.Token, msg.ConnectionId)
+		}
+	case *TransactionUpdate:
+		fmt.Printf("Received TransactionUpdate:\n")
+		fmt.Printf("  Status: %s\n", msg.Status.String())
+		fmt.Printf("  Timestamp: %#v\n", msg.Timestamp)
+		fmt.Printf("  CallerIdentity: %#v\n", msg.CallerIdentity)
+		fmt.Printf("  CallerConnectionId: %#v\n", msg.CallerConnectionId)
+		fmt.Printf("  ReducerCall: %#v\n", msg.ReducerCall)
+		fmt.Printf("  EnergyQuantaUsed: %#v\n", msg.EnergyQuantaUsed)
+		fmt.Printf("  TotalHostExecutionDuration: %#v\n", msg.TotalHostExecutionDuration)
+
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/alexanderbh/spacetimedb-go-sdk"
+	"github.com/alexanderbh/spacetimedb-go-sdk/examples/quickstart-chat/client/module_bindings"
 )
 
 func main() {
@@ -35,25 +36,8 @@ func onConnect(conn *spacetimedb.DBConnection, identity *spacetimedb.Identity, t
 		fmt.Printf("Connection ID: %s\n", connId)
 	}
 
-	argsWriter := spacetimedb.NewBinaryWriter()
-	spacetimedb.CreateStringType().Serialize(argsWriter, "NameTest")
+	err = module_bindings.SetName(conn, "Setname called! Updates?")
 
-	taggedType, err := spacetimedb.NewMapFromClientMessage(&spacetimedb.CallReducer{
-		Reducer:   "set_name",
-		Args:      argsWriter.GetBuffer(),
-		RequestId: 1,
-		Flags:     0,
-	})
-	if err != nil {
-		fmt.Println("Error creating CallReducer tagged type:", err)
-		return
-	}
-
-	writer := spacetimedb.NewBinaryWriter()
-	spacetimedb.ClientMessage_GetAlgebraicType().Serialize(writer, taggedType)
-
-	msg := writer.GetBuffer()
-	err = conn.SendMessage(msg)
 	if err != nil {
 		fmt.Println("Error sending message:", err)
 		return

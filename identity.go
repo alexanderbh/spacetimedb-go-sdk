@@ -10,8 +10,6 @@ type Identity struct {
 	data *big.Int
 }
 
-// NewIdentity creates a new Identity.
-// 'data' can be a hexadecimal string or a *big.Int.
 func NewIdentity(data interface{}) (*Identity, error) {
 	switch v := data.(type) {
 	case string:
@@ -52,4 +50,14 @@ func (id *Identity) ToUint8Array() []byte {
 // FromString parses an Identity from a hexadecimal string.
 func FromString(str string) (*Identity, error) {
 	return NewIdentity(str)
+}
+
+func (id *Identity) Serialize(writer *BinaryWriter) error {
+	panic("Identity.Serialize: not implemented")
+}
+
+func (id *Identity) Deserialize(reader *BinaryReader) error {
+	bigint := reader.ReadU256()
+	id.data = bigint
+	return nil
 }

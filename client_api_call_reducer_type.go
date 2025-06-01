@@ -9,62 +9,30 @@ type CallReducer struct {
 	Flags     uint8
 }
 
-var callReducerAt *AlgebraicType
-
-func CallReducer_GetAlgebraicType() *AlgebraicType {
-	if callReducerAt == nil {
-		callReducerAt = CreateStructType("CallReducer", []StructField{
-			{Name: "reducer", Type: CreateStringType()},
-			{Name: "args", Type: CreateArrayType("Args", CreateU8Type())},
-			{Name: "requestId", Type: CreateU32Type()},
-			{Name: "flags", Type: CreateU8Type()},
-		})
-	}
-	return callReducerAt
+func (cr *CallReducer) Serialize(writer *BinaryWriter) error {
+	writer.WriteString(cr.Reducer)
+	writer.WriteUInt8Array(cr.Args)
+	writer.WriteU32(cr.RequestId)
+	writer.WriteU8(cr.Flags)
+	return nil
 }
 
-func NewMapFromCallReducer(reducer *CallReducer) (map[string]any, error) {
-	if reducer == nil {
-		return nil, fmt.Errorf("nil CallReducer provided")
+func (conn *DBConnection) CallReducer(reducer string, args []byte, requestId uint32, flags uint8) error {
+
+	clientMsg := &ClientMessage{
+		Message: &CallReducer{
+			Reducer:   reducer,
+			Args:      args,
+			RequestId: requestId,
+			Flags:     flags,
+		},
 	}
 
-	return map[string]any{
-		"reducer":   reducer.Reducer,
-		"args":      reducer.Args,
-		"requestId": reducer.RequestId,
-		"flags":     reducer.Flags,
-	}, nil
-}
+	writer := NewBinaryWriter()
 
-func NewCallReducerFromMap(m map[string]any) (*CallReducer, error) {
-	if m == nil {
-		return nil, fmt.Errorf("nil map provided")
-	}
+	clientMsg.Serialize(writer)
 
-	reducer, ok := m["reducer"].(string)
-	if !ok {
-		return nil, fmt.Errorf("missing or invalid 'reducer' field")
-	}
-
-	args, ok := m["args"].([]byte)
-	if !ok {
-		return nil, fmt.Errorf("missing or invalid 'args' field")
-	}
-
-	requestId, ok := m["requestId"].(uint32)
-	if !ok {
-		return nil, fmt.Errorf("missing or invalid 'requestId' field")
-	}
-
-	flags, ok := m["flags"].(uint8)
-	if !ok {
-		return nil, fmt.Errorf("missing or invalid 'flags' field")
-	}
-
-	return &CallReducer{
-		Reducer:   reducer,
-		Args:      args,
-		RequestId: requestId,
-		Flags:     flags,
-	}, nil
+	msg := writer.GetBuffer()
+	fmt.Printf("Sending ClientMessage: %s\n", clientMsg)
+	return conn.SendMessage(msg)
 }

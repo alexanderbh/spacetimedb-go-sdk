@@ -21,64 +21,34 @@ func TestParsingIdentityTokenMessage(t *testing.T) {
 	}
 
 	reader := spacetimedb.NewBinaryReader(bytes)
-	got, err := spacetimedb.ServerMessage_GetAlgebraicType().Deserialize(reader)
-	if err != nil {
-		t.Errorf("failed to deserialize: %v", err)
+
+	got := &spacetimedb.ServerMessage{}
+	if err := got.Deserialize(reader); err != nil {
+		t.Fatalf("failed to deserialize server message: %v", err)
 	}
+	fmt.Println("Deserialized ServerMessage:", got)
 
-	fmt.Println("Deserialized value:", got)
-
-	typedMap, ok := got.(map[string]interface{})
+	identityToken, ok := got.Message.(*spacetimedb.IdentityToken)
 
 	if !ok {
-		t.Errorf("failed to cast to map[string]interface{}")
-	}
-
-	parsedIdToken := typedMap["IdentityToken"]
-
-	if parsedIdToken == nil {
-		t.Errorf("parsed IdentityToken is nil")
-	}
-	idTokenMap, ok := parsedIdToken.(map[string]interface{})
-	if !ok {
-		t.Errorf("failed to cast parsed IdentityToken to map[string]interface{}")
-	}
-
-	// IDENTITY
-	identity, ok := idTokenMap["identity"].(*spacetimedb.Identity)
-	if !ok {
-		t.Errorf("failed to cast identity to *spacetimedb.Identity")
-	}
-	if err != nil {
-		t.Errorf("failed to create identity for expect: %v", err)
+		t.Errorf("failed to cast to spacetimedb.IdentityToken")
 	}
 
 	idBigInt, err := spacetimedb.HexStringToU256("c200f60a2187046a058014b4a9a9f9b28398c08eec59ecaa0078d2f5a331f40c")
 	wantIdentity, err := spacetimedb.NewIdentity(idBigInt)
-	if identity.IsEqual(wantIdentity) == false {
-		t.Errorf("identity mismatch: got %s, want %s", identity.ToHexString(), wantIdentity.ToHexString())
+	if identityToken.Identity.IsEqual(wantIdentity) == false {
+		t.Errorf("identity mismatch: got %s, want %s", identityToken.Identity.ToHexString(), wantIdentity.ToHexString())
 	}
 
 	// CONNECTION ID
-	connectionId, ok := idTokenMap["connectionId"].(*spacetimedb.ConnectionId)
-	if !ok {
-		t.Errorf("failed to cast connectionId to *spacetimedb.ConnectionId")
-	}
-	if connectionId == nil {
-		t.Errorf("connectionId is nil")
-	}
 	wantConnectionId := spacetimedb.NewConnectionId(big.NewInt(456))
-	if connectionId.IsEqual(wantConnectionId) {
-		t.Errorf("connectionId mismatch: got %v, want %v", connectionId, wantConnectionId)
+	if identityToken.ConnectionId.IsEqual(wantConnectionId) {
+		t.Errorf("connectionId mismatch: got %v, want %v", identityToken.ConnectionId, wantConnectionId)
 	}
 
 	// TOKEN
-	token, ok := idTokenMap["token"].(string)
-	if !ok {
-		t.Errorf("failed to cast token to string")
-	}
 	wantToken := "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJoZXhfaWRlbnRpdHkiOiJjMjAwZjYwYTIxODcwNDZhMDU4MDE0YjRhOWE5ZjliMjgzOThjMDhlZWM1OWVjYWEwMDc4ZDJmNWEzMzFmNDBjIiwic3ViIjoiMmVhMTI0ZDAtZDI5Yy00ZGYwLTkwODQtZGE2MjNjN2Y0NWViIiwiaXNzIjoibG9jYWxob3N0IiwiYXVkIjpbInNwYWNldGltZWRiIl0sImlhdCI6MTc0ODAzNDA2OCwiZXhwIjpudWxsfQ.ZJKnsOc8TsnTp3XJWdsSZduSy1Xv6o-UX_IFr3JOznprr9pBOhIuIBnkLZ_lo4wsQ0hcR6gbDvDfrDHWhjcfAg"
-	if token != wantToken {
-		t.Errorf("token mismatch: got %s, want %s", token, wantToken)
+	if identityToken.Token != wantToken {
+		t.Errorf("token mismatch: got %s, want %s", identityToken.Token, wantToken)
 	}
 }
