@@ -10,7 +10,11 @@ func (sm *ServerMessage) Deserialize(reader *BinaryReader) error {
 	unionType := reader.ReadU8()
 	switch unionType {
 	case 0x00:
-		fmt.Println("ServerMessage.Deserialize: type 0x00 is not implemented yet")
+		initialSubscription := &InitialSubscription{}
+		if err := initialSubscription.Deserialize(reader); err != nil {
+			return fmt.Errorf("failed to deserialize InitialSubscription: %w", err)
+		}
+		sm.Message = initialSubscription
 	case 0x01:
 		transactionUpdate := &TransactionUpdate{}
 		if err := transactionUpdate.Deserialize(reader); err != nil {

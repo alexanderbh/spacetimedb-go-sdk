@@ -250,3 +250,10 @@ func (bw *BinaryWriter) WriteString(value string) {
 	copy(bw.buffer[bw.offset:], encodedString)
 	bw.offset += len(encodedString)
 }
+
+func WriteArray[T any](bw *BinaryWriter, values []T, writeFunc func(*BinaryWriter, T)) {
+	bw.WriteU32(uint32(len(values)))
+	for _, value := range values {
+		writeFunc(bw, value)
+	}
+}

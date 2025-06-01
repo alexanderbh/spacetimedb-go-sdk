@@ -15,9 +15,9 @@ func (it *TableUpdate) Deserialize(reader *BinaryReader) error {
 	it.NumRows = reader.ReadU64()
 
 	updates := ReadArray(reader, func() *QueryUpdate {
-		update := &QueryUpdate{}
+		update := &CompressableQueryUpdate{}
 		update.Deserialize(reader)
-		return update
+		return update.Update
 	})
 	it.Updates = updates
 
@@ -26,11 +26,11 @@ func (it *TableUpdate) Deserialize(reader *BinaryReader) error {
 
 func (it *TableUpdate) String() string {
 	result := "TableUpdate:\n"
-	result += "  TableID: " + U32ToHexString(it.TableID) + "\n"
-	result += "  TableName: " + it.TableName + "\n"
-	result += "  NumRows: " + U64ToHexString(it.NumRows) + "\n"
+	result += "    TableID: " + U32ToHexString(it.TableID) + "\n"
+	result += "    TableName: " + it.TableName + "\n"
+	result += "    NumRows: " + U64ToHexString(it.NumRows) + "\n"
 	for _, update := range it.Updates {
-		result += "  " + update.String() + "\n"
+		result += update.String() + "\n"
 	}
 	return result
 }

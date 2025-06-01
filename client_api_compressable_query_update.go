@@ -11,7 +11,6 @@ func (it *CompressableQueryUpdate) Deserialize(reader *BinaryReader) error {
 	switch unionType {
 	case 0x00:
 		uncompressed := &QueryUpdate{}
-		uncompressed.Deserialize(reader)
 		if err := uncompressed.Deserialize(reader); err != nil {
 			return fmt.Errorf("failed to deserialize uncompressed query update: %w", err)
 		}

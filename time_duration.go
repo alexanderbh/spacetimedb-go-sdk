@@ -1,5 +1,7 @@
 package spacetimedb
 
+import "fmt"
+
 // TimeDuration represents a difference between two points in time, in microseconds.
 type TimeDuration struct {
 	Micros int64
@@ -18,4 +20,11 @@ func (td *TimeDuration) Millis() int64 {
 func FromMillis(millis int64) *TimeDuration {
 	micros := millis * microsPerMillis
 	return NewTimeDuration(micros)
+}
+
+func (td *TimeDuration) String() string {
+	if td.Micros < 0 {
+		return "-" + fmt.Sprint(td.Micros) + "µs"
+	}
+	return fmt.Sprint(td.Micros) + "µs"
 }

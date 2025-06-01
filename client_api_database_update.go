@@ -17,9 +17,9 @@ func (it *DatabaseUpdate) Deserialize(reader *BinaryReader) error {
 }
 
 func (it *DatabaseUpdate) String() string {
-	result := "DatabaseUpdate:\n"
+	result := ""
 	for _, table := range it.Tables {
-		result += "  " + table.String() + "\n"
+		result += "" + table.String() + "\n"
 	}
 	return result
 }

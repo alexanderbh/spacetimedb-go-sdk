@@ -10,20 +10,16 @@ type RowSizeHintFixedSize struct {
 	FixedSize uint16
 }
 
-func NewRowSizeHintFixedSize(fixedSize uint16) *RowSizeHint {
-	return &RowSizeHint{
-		RowSizeHint: &RowSizeHintFixedSize{FixedSize: fixedSize},
-	}
+func NewRowSizeHintFixedSize(fixedSize uint16) *RowSizeHintFixedSize {
+	return &RowSizeHintFixedSize{FixedSize: fixedSize}
 }
 
 type RowSizeHintRowOffsets struct {
 	RowOffsets []uint64
 }
 
-func NewRowSizeHintRowOffsets(rowOffsets []uint64) *RowSizeHint {
-	return &RowSizeHint{
-		RowSizeHint: &RowSizeHintRowOffsets{RowOffsets: rowOffsets},
-	}
+func NewRowSizeHintRowOffsets(rowOffsets []uint64) *RowSizeHintRowOffsets {
+	return &RowSizeHintRowOffsets{RowOffsets: rowOffsets}
 }
 
 func (it *RowSizeHint) Deserialize(reader *BinaryReader) error {
@@ -32,7 +28,7 @@ func (it *RowSizeHint) Deserialize(reader *BinaryReader) error {
 	case 0x00:
 		it.RowSizeHint = NewRowSizeHintFixedSize(reader.ReadU16())
 	case 0x01:
-		it.RowSizeHint = NewRowSizeHintRowOffsets(ReadArray[uint64](reader, reader.ReadU64))
+		it.RowSizeHint = NewRowSizeHintRowOffsets(ReadArray(reader, reader.ReadU64))
 	default:
 		return fmt.Errorf("RowSizeHint.Deserialize: unknown union type 0x%02x", unionType)
 	}
@@ -42,9 +38,9 @@ func (it *RowSizeHint) Deserialize(reader *BinaryReader) error {
 func (it *RowSizeHint) String() string {
 	switch hint := it.RowSizeHint.(type) {
 	case *RowSizeHintFixedSize:
-		return fmt.Sprintf("RowSizeHintFixedSize: FixedSize=%d", hint.FixedSize)
+		return fmt.Sprintf("FixedSize=%d", hint.FixedSize)
 	case *RowSizeHintRowOffsets:
-		return fmt.Sprintf("RowSizeHintRowOffsets: RowOffsets=%v", hint.RowOffsets)
+		return fmt.Sprintf("RowOffsets=%+v", hint.RowOffsets)
 	default:
 		return fmt.Sprintf("Unknown RowSizeHint type: %T", it.RowSizeHint)
 	}

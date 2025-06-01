@@ -13,6 +13,7 @@ func main() {
 		spacetimedb.WithNameOrIdentity("go-sdk-test"),
 		spacetimedb.WithOnConnect(onConnect),
 		spacetimedb.WithOnDisconnect(onDisconnect),
+		spacetimedb.WithTableNameMap(module_bindings.Tables),
 	)
 	err := db.Connect()
 	if err != nil {
@@ -40,6 +41,12 @@ func onConnect(conn *spacetimedb.DBConnection, identity *spacetimedb.Identity, t
 
 	if err != nil {
 		fmt.Println("Error sending message:", err)
+		return
+	}
+
+	err = conn.Subscribe("SELECT * FROM user")
+	if err != nil {
+		fmt.Println("Error subscribing to query:", err)
 		return
 	}
 }

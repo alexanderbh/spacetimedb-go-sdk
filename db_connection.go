@@ -24,6 +24,8 @@ type DBConnection struct {
 
 	Compression uint8
 
+	TableNameMap TableNameMap
+
 	OnConnect    func(conn *DBConnection, identity *Identity, token string, connectionId *ConnectionId)
 	OnDisconnect func(*DBConnection)
 }
@@ -68,6 +70,11 @@ func WithOnDisconnect(onDisconnect func(*DBConnection)) DBConnectionOption {
 		opts.OnDisconnect = onDisconnect
 	}
 }
+func WithTableNameMap(tableNameMap TableNameMap) DBConnectionOption {
+	return func(opts *DBConnection) {
+		opts.TableNameMap = tableNameMap
+	}
+}
 
 func (db *DBConnection) Connect() error {
 	if db.Host == "" {
@@ -79,13 +86,13 @@ func (db *DBConnection) Connect() error {
 	dialer := websocket.DefaultDialer
 	//dialer.Subprotocols = []string{"v1.json.spacetimedb"}
 	dialer.Subprotocols = []string{"v1.bsatn.spacetimedb"}
-
 	url, err := url.JoinPath(db.Host, "v1", "database", db.NameOrIdentity, "subscribe")
+
 	if err != nil {
 		return fmt.Errorf("failed to join URL path: %w", err)
 	}
 
-	c, _, err := dialer.DialContext(db.ctx, url, nil)
+	c, _, err := dialer.DialContext(db.ctx, url+"?compression=None", nil) // TODO: Add compression support
 	if err != nil {
 		return fmt.Errorf("failed to connect to websocket: %w", err)
 	}

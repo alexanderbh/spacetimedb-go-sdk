@@ -17,16 +17,12 @@ func (it *QueryUpdate) Deserialize(reader *BinaryReader) error {
 }
 
 func (it *QueryUpdate) String() string {
-	result := "QueryUpdate:\n"
+	result := ""
 	if it.Deletes != nil {
-		result += "  Deletes: " + it.Deletes.String() + "\n"
-	} else {
-		result += "  Deletes: <nil>\n"
+		result += "    Deletes:\n" + it.Deletes.String()
 	}
 	if it.Inserts != nil {
-		result += "  Inserts: " + it.Inserts.String() + "\n"
-	} else {
-		result += "  Inserts: <nil>\n"
+		result += "    Inserts:\n" + it.Inserts.String()
 	}
 	return result
 }
