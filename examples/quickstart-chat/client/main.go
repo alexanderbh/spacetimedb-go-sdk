@@ -37,7 +37,7 @@ func onConnect(conn *spacetimedb.DBConnection, identity *spacetimedb.Identity, t
 		fmt.Printf("Connection ID: %s\n", connId)
 	}
 
-	err = module_bindings.SetName(conn, "Setname called! Updates?")
+	err = module_bindings.SetName(conn, "Setname called with this")
 
 	if err != nil {
 		fmt.Println("Error sending message:", err)
