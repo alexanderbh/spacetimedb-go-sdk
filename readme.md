@@ -1,4 +1,11 @@
-# SpacetimeDB Go SDK
+# Unofficial SpacetimeDB Go SDK
+
+## Disclaimer
+
+> **Note**: This project is an independent, unofficial Go SDK for SpacetimeDB. It is not affiliated with or endorsed by Clockwork Labs or the SpacetimeDB team.
+
+> [!WARNING]
+> This is a work in progress and not feature complete or stable.
 
 ## How to run the example
 
