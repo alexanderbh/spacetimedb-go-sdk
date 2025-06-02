@@ -26,7 +26,7 @@ func (db *DBConnection) parseBsantMessage(msg []byte) error {
 		return fmt.Errorf("failed to deserialize server message: %w", err)
 	}
 
-	fmt.Printf("Received message: %s\n\n", serverMsg)
+	//fmt.Printf("Received message: %s\n\n", serverMsg)
 
 	switch msg := serverMsg.Message.(type) {
 	case *IdentityToken:
@@ -44,49 +44,56 @@ func (db *DBConnection) parseBsantMessage(msg []byte) error {
 		}
 	case *TransactionUpdate:
 		fmt.Printf("Received TransactionUpdate:\n")
-		fmt.Printf("  Status: %s\n", msg.Status.String())
-		fmt.Printf("  Timestamp: %#v\n", msg.Timestamp)
-		fmt.Printf("  CallerIdentity: %#v\n", msg.CallerIdentity)
-		fmt.Printf("  CallerConnectionId: %#v\n", msg.CallerConnectionId)
-		fmt.Printf("  ReducerCall: %#v\n", msg.ReducerCall)
-		fmt.Printf("  EnergyQuantaUsed: %#v\n", msg.EnergyQuantaUsed)
-		fmt.Printf("  TotalHostExecutionDuration: %#v\n", msg.TotalHostExecutionDuration)
+		fmt.Printf("  Reducer:\t%s\n", msg.ReducerCall.String())
+		switch status := msg.Status.Status.(type) {
+		case *UpdateStatusComitted:
+			fmt.Println("  Status:\tSuccess")
+			db.handleTableUpdates(status.DatabaseUpdate.Tables)
+		case *UpdateStatusFailed:
+			fmt.Println("  Status:\tFailed")
+			fmt.Printf("  Error:\t%s\n", status.ErrorMessage)
+		}
 	case *InitialSubscription:
 		fmt.Printf("Received InitialSubscription:\n")
 		fmt.Printf("  RequestId: %d\n", msg.RequestId)
 		fmt.Printf("  TotalHostExecutionDuration: %s\n", msg.TotalHostExecutionDuration.String())
-		if msg.DatabaseUpdate != nil {
-			fmt.Printf("  %s\n", msg.DatabaseUpdate.String())
-			for _, tableUpdate := range msg.DatabaseUpdate.Tables {
-				if tableUpdate == nil || tableUpdate.NumRows == 0 {
-					continue
-				}
-				for _, update := range tableUpdate.Updates {
-					if update == nil {
-						continue
-					}
-					if db.TableNameMap[tableUpdate.TableName] == nil {
-						fmt.Printf("  Table %s not found in TableNameMap\n", tableUpdate.TableName)
-						continue
-					}
-					reader := NewBinaryReader(update.Inserts.RowsData)
-					// While reader is not at the end loop through the rows
-					for reader.offset < len(reader.buffer) {
-						row, err := db.TableNameMap[tableUpdate.TableName].DeserializeRow(reader)
-						if err != nil {
-							fmt.Println("  Error deserializing row:", err)
-							continue
-						}
-						err = db.TableNameMap[tableUpdate.TableName].Insert(row)
-						if err != nil {
-							fmt.Println("  Error inserting row:", err)
-							continue
-						}
-					}
+		if msg.DatabaseUpdate != nil && msg.DatabaseUpdate.Tables != nil {
+			db.handleTableUpdates(msg.DatabaseUpdate.Tables)
+		}
+	}
+
+	return nil
+}
+
+func (db *DBConnection) handleTableUpdates(updates []*TableUpdate) error {
+	for _, tableUpdate := range updates {
+		if tableUpdate == nil || tableUpdate.NumRows == 0 {
+			continue
+		}
+		if db.TableNameMap[tableUpdate.TableName] == nil {
+			return fmt.Errorf("table %s not found in TableNameMap", tableUpdate.TableName)
+		}
+		for _, update := range tableUpdate.Updates {
+			if update == nil {
+				continue
+			}
+			reader := NewBinaryReader(update.Inserts.RowsData)
+			// While reader is not at the end loop through the rows
+			for reader.offset < len(reader.buffer) {
+				err := db.TableNameMap[tableUpdate.TableName].Insert(reader)
+				if err != nil {
+					return fmt.Errorf("error inserting row: %w", err)
 				}
 			}
-		} else {
-			fmt.Println("  DatabaseUpdate is nil")
+
+			reader = NewBinaryReader(update.Deletes.RowsData)
+			// While reader is not at the end loop through the rows
+			for reader.offset < len(reader.buffer) {
+				err := db.TableNameMap[tableUpdate.TableName].Delete(reader)
+				if err != nil {
+					return fmt.Errorf("error deleting row: %w", err)
+				}
+			}
 		}
 	}
 

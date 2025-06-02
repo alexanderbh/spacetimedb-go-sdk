@@ -16,3 +16,7 @@ func (it *ReducerCallInfo) Deserialize(reader *BinaryReader) error {
 
 	return nil
 }
+
+func (it *ReducerCallInfo) String() string {
+	return it.ReducerName
+}

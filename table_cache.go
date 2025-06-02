@@ -5,8 +5,8 @@ type TableCache[T any] struct {
 }
 
 type Table interface {
-	DeserializeRow(reader *BinaryReader) (any, error)
-	Insert(row any) error
+	Insert(reader *BinaryReader) error
+	Delete(reader *BinaryReader) error
 }
 
 type TableNameMap = map[string]Table
