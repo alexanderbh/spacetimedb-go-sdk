@@ -1,10 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"log"
+	"os"
+	"quickstart-chat/module_bindings"
 
+	"github.com/alexanderbh/bubbleapp/app"
 	"github.com/alexanderbh/spacetimedb-go-sdk"
-	"github.com/alexanderbh/spacetimedb-go-sdk/examples/quickstart-chat/client/module_bindings"
+	tea "github.com/charmbracelet/bubbletea/v2"
 )
 
 func main() {
@@ -14,43 +17,49 @@ func main() {
 		spacetimedb.WithOnConnect(onConnect),
 		spacetimedb.WithOnDisconnect(onDisconnect),
 		spacetimedb.WithTableNameMap(module_bindings.Tables),
+		spacetimedb.WithLogger(Logger),
 	)
 	err := db.Connect()
 	if err != nil {
-		fmt.Println("Error connecting to database:", err)
+		log.Fatalln("Error connecting to database:", err)
 		return
 	}
 	defer db.Close()
 
-	fmt.Print("Press Enter to exit...\n\n")
-	var input string
-	fmt.Scanln(&input)
+	c := app.NewCtx()
+	bubbleApp := app.New(c, NewRoot(db))
+	p := tea.NewProgram(bubbleApp, tea.WithAltScreen(), tea.WithMouseAllMotion())
+	bubbleApp.SetTeaProgram(p)
+	if _, err := p.Run(); err != nil {
+		os.Exit(1)
+	}
 }
 
-func onConnect(conn *spacetimedb.DBConnection, identity *spacetimedb.Identity, token string, connectionId *spacetimedb.ConnectionId) {
-	fmt.Printf("Connected to database with identity: %s\n", identity.ToHexString())
-	fmt.Printf("Token: %s\n", token)
+func onConnect(db *spacetimedb.DBConnection, identity *spacetimedb.Identity, token string, connectionId *spacetimedb.ConnectionId) {
+
+	db.Logger("Connected to database with identity: %s", identity.ToHexString())
+	db.Logger("Token: %s", token)
 	connId, err := connectionId.ToHexString()
 	if err != nil {
-		fmt.Println("Error converting connection ID to hex string:", err)
+		db.Logger("Error converting connection ID to hex string:", err)
 	} else {
-		fmt.Printf("Connection ID: %s\n", connId)
+		db.Logger("Connection ID: %s", connId)
 	}
 
-	err = module_bindings.SetName(conn, "Setname called with this")
+	err = module_bindings.SetName(db, "Setname called with this")
 
 	if err != nil {
-		fmt.Println("Error sending message:", err)
+		log.Println("Error sending message:", err)
 		return
 	}
 
-	err = conn.Subscribe("SELECT * FROM user")
+	err = db.Subscribe("SELECT * FROM user")
 	if err != nil {
-		fmt.Println("Error subscribing to query:", err)
+		log.Println("Error subscribing to query:", err)
 		return
 	}
 }
 
-func onDisconnect(conn *spacetimedb.DBConnection) {
-	fmt.Printf("Disconnected from database.\n")
+func onDisconnect(db *spacetimedb.DBConnection) {
+	db.Logger("Disconnected from database.")
 }

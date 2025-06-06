@@ -1,7 +1,5 @@
 package spacetimedb
 
-import "fmt"
-
 type CallReducer struct {
 	Reducer   string
 	Args      []byte
@@ -33,6 +31,6 @@ func (conn *DBConnection) CallReducer(reducer string, args []byte, requestId uin
 	clientMsg.Serialize(writer)
 
 	msg := writer.GetBuffer()
-	fmt.Printf("Sending ClientMessage: %s\n", clientMsg)
+	conn.Logger("Sending ClientMessage: %s", clientMsg)
 	return conn.SendMessage(msg)
 }

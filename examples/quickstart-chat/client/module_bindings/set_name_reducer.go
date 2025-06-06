@@ -16,7 +16,7 @@ func SetName(conn *spacetimedb.DBConnection, name string) error {
 		0,
 	)
 	if err != nil {
-		return fmt.Errorf("Error calling set_name reducer: %v\n", err)
+		return fmt.Errorf("Error calling set_name reducer: %v", err)
 	}
 	return nil
 }

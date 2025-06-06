@@ -26,12 +26,12 @@ func (db *DBConnection) parseBsantMessage(msg []byte) error {
 		return fmt.Errorf("failed to deserialize server message: %w", err)
 	}
 
-	//fmt.Printf("Received message: %s\n\n", serverMsg)
+	//db.Logger("Received message: %s", serverMsg)
 
 	switch msg := serverMsg.Message.(type) {
 	case *IdentityToken:
 
-		fmt.Printf("Received IdentityToken: %#v\n\n", serverMsg.Message)
+		db.Logger("Received IdentityToken: %#v", serverMsg.Message)
 
 		db.IsConnected = true
 		db.Identity = msg.Identity
@@ -43,20 +43,20 @@ func (db *DBConnection) parseBsantMessage(msg []byte) error {
 			db.OnConnect(db, msg.Identity, msg.Token, msg.ConnectionId)
 		}
 	case *TransactionUpdate:
-		fmt.Printf("Received TransactionUpdate:\n")
-		fmt.Printf("  Reducer:\t%s\n", msg.ReducerCall.String())
+		db.Logger("Received TransactionUpdate:")
+		db.Logger("  Reducer:\t%s", msg.ReducerCall.String())
 		switch status := msg.Status.Status.(type) {
 		case *UpdateStatusComitted:
-			fmt.Println("  Status:\tSuccess")
+			db.Logger("  Status:\tSuccess")
 			db.handleTableUpdates(status.DatabaseUpdate.Tables)
 		case *UpdateStatusFailed:
-			fmt.Println("  Status:\tFailed")
-			fmt.Printf("  Error:\t%s\n", status.ErrorMessage)
+			db.Logger("  Status:\tFailed")
+			db.Logger("  Error:\t%s", status.ErrorMessage)
 		}
 	case *InitialSubscription:
-		fmt.Printf("Received InitialSubscription:\n")
-		fmt.Printf("  RequestId: %d\n", msg.RequestId)
-		fmt.Printf("  TotalHostExecutionDuration: %s\n", msg.TotalHostExecutionDuration.String())
+		db.Logger("Received InitialSubscription:")
+		db.Logger("  RequestId: %d", msg.RequestId)
+		db.Logger("  TotalHostExecutionDuration: %s", msg.TotalHostExecutionDuration.String())
 		if msg.DatabaseUpdate != nil && msg.DatabaseUpdate.Tables != nil {
 			db.handleTableUpdates(msg.DatabaseUpdate.Tables)
 		}

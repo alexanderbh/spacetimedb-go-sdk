@@ -3,7 +3,6 @@ package spacetimedb
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/url"
 
 	"github.com/gorilla/websocket"
@@ -28,6 +27,8 @@ type DBConnection struct {
 
 	OnConnect    func(conn *DBConnection, identity *Identity, token string, connectionId *ConnectionId)
 	OnDisconnect func(*DBConnection)
+
+	Logger func(format string, args ...interface{})
 }
 
 const (
@@ -75,6 +76,18 @@ func WithTableNameMap(tableNameMap TableNameMap) DBConnectionOption {
 		opts.TableNameMap = tableNameMap
 	}
 }
+func WithLogger(logger func(format string, args ...interface{})) DBConnectionOption {
+	return func(opts *DBConnection) {
+		opts.Logger = logger
+	}
+}
+func WithStdLogger() DBConnectionOption {
+	return func(opts *DBConnection) {
+		opts.Logger = func(format string, args ...interface{}) {
+			fmt.Printf(format+"\n", args...)
+		}
+	}
+}
 
 func (db *DBConnection) Connect() error {
 	if db.Host == "" {
@@ -98,7 +111,7 @@ func (db *DBConnection) Connect() error {
 	}
 
 	db.WS = c
-	fmt.Printf("Connected to websocket at %s\n", db.Host)
+	db.Logger("Connected to websocket at %s", db.Host)
 
 	go func() {
 		defer func() {
@@ -110,39 +123,39 @@ func (db *DBConnection) Connect() error {
 		for {
 			select {
 			case <-db.ctx.Done():
-				log.Println("context cancelled, exiting message read loop")
+				db.Logger("context cancelled, exiting message read loop")
 				return
 			default:
 				if db.WS == nil {
-					log.Println("connection is nil, exiting message read loop")
+					db.Logger("connection is nil, exiting message read loop")
 					return
 				}
 				messageType, rawMessage, err := db.WS.ReadMessage()
 				if err != nil {
 					select {
 					case <-db.ctx.Done():
-						log.Println("context cancelled, exiting message read loop after read error")
+						db.Logger("context cancelled, exiting message read loop after read error")
 					default:
-						log.Printf("Error reading message: %v\\n\\n", err)
+						db.Logger("Error reading message: %v", err)
 					}
 					return
 				}
 				if messageType == websocket.TextMessage {
-					log.Printf("Received text message: %s\n\n", rawMessage)
+					db.Logger("Received text message: %s", rawMessage)
 				}
 				if messageType == websocket.BinaryMessage {
-					log.Printf("Received binary message: %x\n\n", rawMessage)
+					db.Logger("Received binary message: %x", rawMessage)
 					err = db.parseBsantMessage(rawMessage)
 					if err != nil {
-						log.Printf("Error parsing binary message: %v\n\n", err)
+						db.Logger("Error parsing binary message: %v", err)
 					}
 				}
 				if messageType == websocket.CloseMessage {
-					log.Println("Received close message, closing connection")
+					db.Logger("Received close message, closing connection")
 					return
 				}
 				if messageType == websocket.PongMessage {
-					log.Print("Received pong message\n\n")
+					db.Logger("Received pong message")
 				}
 			}
 		}
@@ -157,9 +170,9 @@ func (db *DBConnection) Close() {
 	if db.WS != nil {
 		err := db.WS.Close()
 		if err != nil {
-			fmt.Printf("Error closing connection: %v\n", err)
+			db.Logger("Error closing connection: %v", err)
 		} else {
-			fmt.Println("Connection closed")
+			db.Logger("Connection closed")
 		}
 	}
 }

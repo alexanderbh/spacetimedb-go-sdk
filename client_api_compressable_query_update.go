@@ -1,6 +1,9 @@
 package spacetimedb
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 type CompressableQueryUpdate struct {
 	Update *QueryUpdate
@@ -16,9 +19,9 @@ func (it *CompressableQueryUpdate) Deserialize(reader *BinaryReader) error {
 		}
 		it.Update = uncompressed
 	case 0x01:
-		fmt.Println("CompressableQueryUpdate.Deserialize: type 0x01 is not implemented yet. Brotli compression.")
+		log.Println("CompressableQueryUpdate.Deserialize: type 0x01 is not implemented yet. Brotli compression.")
 	case 0x02:
-		fmt.Println("CompressableQueryUpdate.Deserialize: type 0x02 is not implemented yet. Gzip compression.")
+		log.Println("CompressableQueryUpdate.Deserialize: type 0x02 is not implemented yet. Gzip compression.")
 	}
 
 	return nil

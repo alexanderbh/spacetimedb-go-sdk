@@ -1,7 +1,5 @@
 package spacetimedb
 
-import "fmt"
-
 type Subscribe struct {
 	QueryStrings []string
 	RequestId    uint32
@@ -29,6 +27,6 @@ func (conn *DBConnection) Subscribe(queryStrings ...string) error {
 	clientMsg.Serialize(writer)
 
 	msg := writer.GetBuffer()
-	fmt.Printf("Sending ClientMessage: %s\n", clientMsg)
+	conn.Logger("Sending ClientMessage: %s", clientMsg)
 	return conn.SendMessage(msg)
 }
